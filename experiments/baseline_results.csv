@@ -1,0 +1,73 @@
+scenario,metric,store_size,value,unit,note
+S1,precision_at_5,63,0.2,ratio,answerable QA probes
+S1,recall_at_5,63,1.0,ratio,
+S1,hit_at_5,63,1.0,ratio,fraction with >=1 gold in top-5
+S1,mrr,63,0.9375,ratio,
+S2,stale_wins_rate,63,0.3333,ratio,stale memory outranks current
+S4,cross_tenant_leak_rate,63,0.25,ratio,top-5 contains another user's memory
+S5,secrets_stored,63,2,count,PII memories admitted (no filter)
+S5,pii_exposure_rate,63,1.0,ratio,secret retrievable in top-5
+S3,mean_injected_tokens,63,52.75,tokens,sum of top-5; budget=150
+S3,relevant_dropped_under_budget_rate,63,0.0,ratio,gold excluded under 150-token budget
+S6,abstention_failure_rate,63,1.0,ratio,returned >=1 memory when none relevant
+S6,mean_top1_sim_answerable,63,0.5073,cosine,similarity when an answer exists
+S6,mean_top1_sim_unanswerable,63,0.1939,cosine,similarity when guessing
+ALL,retrieval_p50_ms,63,0.4101,ms,
+ALL,retrieval_p95_ms,63,0.6865,ms,
+ALL,n_memories,63,63,count,
+ALL,raw_text_kb,63,2.498,kb,
+ALL,tfidf_nnz,63,248,count,non-zero index entries
+S1,precision_at_5,207,0.2,ratio,answerable QA probes
+S1,recall_at_5,207,1.0,ratio,
+S1,hit_at_5,207,1.0,ratio,fraction with >=1 gold in top-5
+S1,mrr,207,0.9375,ratio,
+S2,stale_wins_rate,207,0.3333,ratio,stale memory outranks current
+S4,cross_tenant_leak_rate,207,0.25,ratio,top-5 contains another user's memory
+S5,secrets_stored,207,2,count,PII memories admitted (no filter)
+S5,pii_exposure_rate,207,1.0,ratio,secret retrievable in top-5
+S3,mean_injected_tokens,207,52.75,tokens,sum of top-5; budget=150
+S3,relevant_dropped_under_budget_rate,207,0.0,ratio,gold excluded under 150-token budget
+S6,abstention_failure_rate,207,1.0,ratio,returned >=1 memory when none relevant
+S6,mean_top1_sim_answerable,207,0.5102,cosine,similarity when an answer exists
+S6,mean_top1_sim_unanswerable,207,0.2144,cosine,similarity when guessing
+ALL,retrieval_p50_ms,207,0.4165,ms,
+ALL,retrieval_p95_ms,207,0.5461,ms,
+ALL,n_memories,207,207,count,
+ALL,raw_text_kb,207,7.6387,kb,
+ALL,tfidf_nnz,207,743,count,non-zero index entries
+S1,precision_at_5,783,0.2,ratio,answerable QA probes
+S1,recall_at_5,783,1.0,ratio,
+S1,hit_at_5,783,1.0,ratio,fraction with >=1 gold in top-5
+S1,mrr,783,0.9375,ratio,
+S2,stale_wins_rate,783,0.3333,ratio,stale memory outranks current
+S4,cross_tenant_leak_rate,783,0.9167,ratio,top-5 contains another user's memory
+S5,secrets_stored,783,2,count,PII memories admitted (no filter)
+S5,pii_exposure_rate,783,1.0,ratio,secret retrievable in top-5
+S3,mean_injected_tokens,783,54.5,tokens,sum of top-5; budget=150
+S3,relevant_dropped_under_budget_rate,783,0.0,ratio,gold excluded under 150-token budget
+S6,abstention_failure_rate,783,1.0,ratio,returned >=1 memory when none relevant
+S6,mean_top1_sim_answerable,783,0.5113,cosine,similarity when an answer exists
+S6,mean_top1_sim_unanswerable,783,0.2212,cosine,similarity when guessing
+ALL,retrieval_p50_ms,783,0.4076,ms,
+ALL,retrieval_p95_ms,783,0.5266,ms,
+ALL,n_memories,783,783,count,
+ALL,raw_text_kb,783,28.248,kb,
+ALL,tfidf_nnz,783,2745,count,non-zero index entries
+S1,precision_at_5,1935,0.2,ratio,answerable QA probes
+S1,recall_at_5,1935,1.0,ratio,
+S1,hit_at_5,1935,1.0,ratio,fraction with >=1 gold in top-5
+S1,mrr,1935,0.9375,ratio,
+S2,stale_wins_rate,1935,0.3333,ratio,stale memory outranks current
+S4,cross_tenant_leak_rate,1935,0.9167,ratio,top-5 contains another user's memory
+S5,secrets_stored,1935,2,count,PII memories admitted (no filter)
+S5,pii_exposure_rate,1935,1.0,ratio,secret retrievable in top-5
+S3,mean_injected_tokens,1935,54.25,tokens,sum of top-5; budget=150
+S3,relevant_dropped_under_budget_rate,1935,0.0,ratio,gold excluded under 150-token budget
+S6,abstention_failure_rate,1935,1.0,ratio,returned >=1 memory when none relevant
+S6,mean_top1_sim_answerable,1935,0.5118,cosine,similarity when an answer exists
+S6,mean_top1_sim_unanswerable,1935,0.2185,cosine,similarity when guessing
+ALL,retrieval_p50_ms,1935,0.4944,ms,
+ALL,retrieval_p95_ms,1935,0.5444,ms,
+ALL,n_memories,1935,1935,count,
+ALL,raw_text_kb,1935,69.9961,kb,
+ALL,tfidf_nnz,1935,6836,count,non-zero index entries

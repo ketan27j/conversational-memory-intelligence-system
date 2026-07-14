@@ -1,0 +1,82 @@
+{
+  "$comment": "nodes=modules, edges=[cause,effect] where cause is imported-by effect. ADD invariants by hand.",
+  "project": ".",
+  "generated": "2026-07-14T08:31:45.642Z",
+  "nodes": [
+    "benchmark",
+    "csv",
+    "dataclasses",
+    "json",
+    "memory",
+    "numpy",
+    "os",
+    "pairwise",
+    "random",
+    "statistics",
+    "text",
+    "time",
+    "workload"
+  ],
+  "edges": [
+    [
+      "csv",
+      "benchmark"
+    ],
+    [
+      "dataclasses",
+      "memory"
+    ],
+    [
+      "json",
+      "benchmark"
+    ],
+    [
+      "memory",
+      "benchmark"
+    ],
+    [
+      "numpy",
+      "benchmark"
+    ],
+    [
+      "numpy",
+      "memory"
+    ],
+    [
+      "os",
+      "benchmark"
+    ],
+    [
+      "pairwise",
+      "memory"
+    ],
+    [
+      "random",
+      "workload"
+    ],
+    [
+      "statistics",
+      "benchmark"
+    ],
+    [
+      "text",
+      "memory"
+    ],
+    [
+      "time",
+      "memory"
+    ],
+    [
+      "workload",
+      "benchmark"
+    ]
+  ],
+  "invariants": {
+    "INV-1_tenant_isolation": "Every memory row carries a user ID; row-level security in the database refuses to return another user's rows, regardless of application-layer query correctness. User ID is taken only from the login token, never from the request body. (threat_model.md T1/T7 — fixes the 0.92 cross-tenant leak measured in the baseline.)",
+    "INV-2_no_secrets_stored": "The secrets filter runs before anything is written and blocks API keys/card numbers/credentials; must pass in both directions (real secrets blocked, innocent phrases like 'my key learnings' not blocked). Nothing sensitive reaches the store unfiltered. (threat_model.md T2.)",
+    "INV-4_deletion_is_real": "A deleted memory is excluded from all reads instantly and removed from the search index within 60 seconds; reads never return a deleted memory even if the index lags. (threat_model.md T5, C11.)"
+  },
+  "freeze_boundary": [
+    "src/**"
+  ]
+}
