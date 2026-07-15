@@ -109,4 +109,4 @@ Zep-style two-date-per-fact model (valid-time + record-time) in a dedicated grap
 
 ## Progress (loops append here on milestone completion — newest last)
 
-- _(none yet — first loop fills this)_
+- **2026-07-14 — M0 DONE.** One PostgreSQL database (isolated docker-compose stack, port 5433, separate from the real commenthook stack), row-level security on all 4 tables (`memory`, `memory_entity`, `conversation_turn`, `audit_log`), skeleton `POST /messages` / `GET /memories` behind a verified-token auth stub. Demo: `pytest implementation/tests/test_tenant_isolation.py -v` → 5/5 passed, cross-tenant leak = 0 (down from 0.92 baseline), unfiltered query refused by the database itself. L4 VERIFY (claude-opus-4-8, fresh context) → APPROVE. Quiz-me gate answered by human, logged in `checkpoints/M0.md`. Hardening note surfaced during the quiz: the `cmis` table-owner role is a Postgres superuser (default behavior of the official image) and unconditionally bypasses RLS — nothing beyond one-time schema setup should ever connect as `cmis`.

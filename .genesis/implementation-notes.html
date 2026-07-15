@@ -33,13 +33,13 @@
   <p class="sub"><b>Rolling source of truth for what is LIVE right now.</b> The wiki can lag; this file
      cannot. Read this on every session start to avoid rebuilding what exists. This is your
      <i>git-like restart point</i>: if context is lost, this file rehydrates you.
-     Last updated: <code>{{TIMESTAMP}}</code> · by loop: <code>{{LOOP_ID}}</code></p>
+     Last updated: <code>2026-07-14</code> · by loop: <code>L1-BUILD-M0</code></p>
 
   <!-- ───────────── ONE-LINE STATUS ───────────── -->
   <div class="card live">
-    <b>Now in flight:</b> {{NOW_IN_FLIGHT}}<br>
-    <b>Active loop:</b> {{ACTIVE_LOOP}} · <b>Current milestone:</b> {{MILESTONE_ID}} · <b>Phase:</b> {{PHASE}}<br>
-    <b>Blocked on:</b> {{BLOCKERS}}
+    <b>Now in flight:</b> nothing — M0 closed out, M1 not yet started<br>
+    <b>Active loop:</b> NONE · <b>Current milestone:</b> M0 (done) → next is M1 · <b>Phase:</b> Phase 5/6/11 (write gate, secrets, memory)<br>
+    <b>Blocked on:</b> nothing
   </div>
 
   <!-- ───────────── WHAT'S LIVE ───────────── -->
@@ -48,9 +48,12 @@
     <table>
       <thead><tr><th>Capability</th><th>Where (file/route/symbol)</th><th>Status</th><th>Verified by</th></tr></thead>
       <tbody>
-        <tr><td>{{CAP_1}}</td><td><code>{{LOC_1}}</code></td><td><span class="pill live">live</span></td><td>{{VERIFY_1}}</td></tr>
-        <tr><td>{{CAP_2}}</td><td><code>{{LOC_2}}</code></td><td><span class="pill wip">partial</span></td><td>—</td></tr>
-        <tr><td>add rows as milestones complete…</td><td></td><td></td><td></td></tr>
+        <tr><td>Isolated Postgres + full data_model.md schema (memory, memory_entity, conversation_turn, audit_log)</td><td><code>implementation/db/schema.sql</code>, <code>implementation/docker-compose.yml</code></td><td><span class="pill live">live</span></td><td>pytest + L4 VERIFY (claude-opus-4-8) APPROVE</td></tr>
+        <tr><td>Tenant isolation (row-level security, fail-closed on unscoped connections)</td><td><code>implementation/db/schema.sql</code> (tenant_isolation policy), <code>implementation/db/connection.py</code></td><td><span class="pill live">live</span></td><td>tests/test_tenant_isolation.py — cross-tenant leak 0/0, unfiltered query refused by DB; L4 VERIFY APPROVE</td></tr>
+        <tr><td>Auth: verified-token → tenant_id (stub, not real IdP)</td><td><code>implementation/api/auth.py</code></td><td><span class="pill live">live</span></td><td>tests/test_tenant_isolation.py::test_get_memories_requires_a_token</td></tr>
+        <tr><td>POST /messages, GET /memories (skeleton — no extraction/write-gate/ranking yet)</td><td><code>implementation/api/main.py</code></td><td><span class="pill live">live</span></td><td>tests/test_tenant_isolation.py</td></tr>
+        <tr><td>Write gate, secrets filter, fact extraction (M1)</td><td>—</td><td><span class="pill wip">not started</span></td><td>—</td></tr>
+        <tr><td>Hybrid search / ranking (M2), contradictions (M3), forgetting (M4), observability (M5)</td><td>—</td><td><span class="pill wip">not started</span></td><td>—</td></tr>
       </tbody>
     </table>
     <p class="note">Append a row the moment a milestone passes L4 VERIFY. The grep in G0 checks against this table.</p>
@@ -60,8 +63,10 @@
   <h2>Decisions that constrain new work</h2>
   <div class="card">
     <ul>
-      <li><code>{{DECISION_ID}}</code> — {{DECISION_SUMMARY}} → see <code>decisions/{{DECISION_ID}}.md</code></li>
-      <li>add ADR pointers here so future loops don't relitigate settled calls</li>
+      <li><code>ADR-003</code> — one PostgreSQL database, no separate vector/graph store for v1 → see <code>design/ADR-003-one-postgres-database.md</code></li>
+      <li><code>ADR-004</code> — tenant isolation enforced inside the database (RLS), application filters are a second layer only, never the thing relied on → see <code>design/ADR-004-separation-inside-the-database.md</code></li>
+      <li><code>ADR-005</code> — secrets checked before anything else, feeds M1 → see <code>design/ADR-005-check-secrets-first.md</code></li>
+      <li>Hardening note (surfaced during M0's L4 VERIFY quiz): the <code>cmis</code> table-owner role is a Postgres <b>superuser</b> (default behavior of the official Docker image) and unconditionally bypasses RLS regardless of <code>FORCE ROW LEVEL SECURITY</code> — nothing beyond one-time schema setup should ever connect as <code>cmis</code>. Not yet enforced by anything beyond convention/documentation here.</li>
     </ul>
   </div>
 
@@ -74,7 +79,8 @@
     <table>
       <thead><tr><th>Date</th><th>Milestone</th><th>Planned approach</th><th>Actual approach</th><th>Reason</th><th>Invariant impact</th></tr></thead>
       <tbody>
-        <tr><td colspan="6" style="color:var(--mut);font-style:italic">no deviations yet — append a row when a plan change occurs</td></tr>
+        <tr><td>2026-07-14</td><td>M0</td><td>Mount <code>db/schema.sql</code> into <code>docker-entrypoint-initdb.d</code></td><td>Apply schema.sql via psycopg inside the pytest session fixture (idempotent, checks if <code>memory</code> table exists first)</td><td>Docker Desktop's file-sharing restrictions on this host blocked the bind mount ("mounts denied")</td><td>None — identical schema and RLS policies, just applied a different way</td></tr>
+        <tr><td>2026-07-14</td><td>M0</td><td><code>SET app.tenant_id = %s</code> (parameterized) to stamp the session</td><td><code>SELECT set_config('app.tenant_id', %s, false)</code></td><td><code>SET</code> does not accept bind parameters in Postgres — caught immediately by the tests</td><td>None — same runtime behavior, different valid SQL</td></tr>
       </tbody>
     </table>
   </div>
@@ -83,8 +89,8 @@
   <h2>Known gaps &amp; the ordered Next list</h2>
   <div class="card">
     <ol>
-      <li>{{NEXT_1}}</li>
-      <li>{{NEXT_2}}</li>
+      <li>Nothing enforces that the <code>cmis</code> superuser role is never used at runtime beyond convention — consider a lint/CI check or removing superuser from that role once migrations run under a separate non-superuser owner.</li>
+      <li>Run G0 Existence Pre-Flight for M1 (write gate, secrets filter, fact extraction).</li>
     </ol>
     <p class="note">Mirror of <code>checkpoints/CURRENT.md → next_action</code>, but human-readable and durable across compaction.</p>
   </div>
@@ -92,7 +98,7 @@
   <!-- ───────────── SESSION LOG (append-only) ───────────── -->
   <h2>Session log (append-only, newest first)</h2>
   <div class="card">
-    <p><code>{{TIMESTAMP}}</code> — {{SESSION_SUMMARY}}</p>
+    <p><code>2026-07-14</code> — Genesis ritual (G0-G6) completed for the whole project, then M0 built end-to-end: isolated Postgres (pgvector) via docker-compose, full data_model.md schema, RLS-based tenant isolation, skeleton send-message/get-memories endpoints behind a stub token auth. Hit and fixed two real bugs (invalid parameterized <code>SET</code>, blocked bind-mount). L4 VERIFY (claude-opus-4-8, fresh context) independently re-ran all checks and did extra probing (direct pg_roles query, manual cross-tenant INSERT attempt) → APPROVE. Human answered the 3-question quiz-me gate, surfacing a real hardening gap (the <code>cmis</code> role's superuser status defeats <code>FORCE ROW LEVEL SECURITY</code> for that specific role). M0 marked done. Next: M1.</p>
     <p class="note">One paragraph per session: what shipped, what broke, what's next. This is the narrative the next cold session reads first.</p>
   </div>
 
