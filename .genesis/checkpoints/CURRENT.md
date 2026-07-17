@@ -1,10 +1,10 @@
 # CURRENT
 - active_loop: BUILD
-- target: M2
+- target: M3
 - iteration: 0
-- last_gate: G5 Verify (pass — APPROVE, quiz answered) on M1
-- last_action: M1 DONE — write gate, secrets filter, fact extraction shipped, L4 VERIFY approved (attempt 2), quiz-me gate answered by human, checkpoints/M1.md closed out
-- next_action: G0 done (checkpoints/M2.md) — begin L1 BUILD iter 1: implementation/retrieval/** (embedder, entity extractor, indexer, hybrid search)
+- last_gate: G5 Verify (pass — APPROVE, quiz answered) on M2
+- last_action: M2 DONE — hybrid search (vector+keyword+entity), C6/C7 ranking blend, relevance-floor abstention, write-time indexing wired into write_gate/pipeline.py; L4 VERIFY approved (attempt 2, attempt 1 caught a real abstention bug fixed via L2 DEBUG); quiz-me gate answered by human; checkpoints/M2.md closed out; progress appended to PLAN.md
+- next_action: G0 done (checkpoints/M3.md) — begin L1 BUILD iter 1: implementation/contradiction/** (write-time contradiction check against existing memories on the same subject, superseded_by wiring, POST /v1/memories:feedback correction endpoint). Note: G0 surfaced a schema gap — status CHECK constraint needs a 'superseded' value added via migration before the write-time check can flip a row's status; resolve as part of the M3 micro-plan.
 - model: claude-sonnet-5
 - tokens_used: 0
 - tokens_budget: 50000
