@@ -3,7 +3,10 @@
 M0 shipped a placeholder skeleton (`POST /messages`); M1 replaces it with the
 documented `/v1/memories:ingest` contract, since M1 is what actually builds
 the secrets-check-then-background-queue behavior (ADR-005) this contract
-describes. Ranking/hybrid search for GET /v1/memories is still M2.
+describes. M2 adds `POST /v1/memories:retrieve` (hybrid search + ranking +
+relevance-bar abstention) — the other required touch outside M2's declared
+freeze boundary, since api_contracts.md's retrieve contract is what this
+milestone's outcome is documented against.
 """
 import uuid
 from typing import Literal
@@ -14,9 +17,11 @@ from pydantic import BaseModel, Field
 from api.auth import verify_token
 from db.connection import tenant_connection
 from extraction.extractor import FactExtractor
+from retrieval.embedder import Embedder
+from retrieval.search import hybrid_search
 from secrets_filter import detector
 from write_gate.judge import WriteGateJudge
-from write_gate.pipeline import get_extractor, get_judge, process_turn
+from write_gate.pipeline import get_embedder, get_extractor, get_judge, process_turn
 
 app = FastAPI(title="Conversational Memory Intelligence System")
 
@@ -41,6 +46,30 @@ class MemoryOut(BaseModel):
     confidence: float
 
 
+class RetrieveIn(BaseModel):
+    query: str = Field(min_length=1, max_length=2000)
+    token_budget: int = Field(default=512, gt=0)
+    k_max: int = Field(default=8, gt=0)
+    rerank: bool = False  # ADR-006: reranker is a switch for M6 — accepted, not implemented, here
+
+
+class ScoredMemoryOut(BaseModel):
+    id: uuid.UUID
+    type: str
+    content: str
+    score: float
+    importance: int
+    confidence: float
+    created_at: str
+
+
+class RetrieveOut(BaseModel):
+    memories: list[ScoredMemoryOut]
+    abstained: bool
+    tokens_used: int
+    signals: dict[str, float]
+
+
 @app.post("/v1/memories:ingest", response_model=IngestOut, status_code=201)
 def ingest(
     msg: MessageIn,
@@ -48,6 +77,7 @@ def ingest(
     tenant_id: str = Depends(verify_token),
     extractor: FactExtractor = Depends(get_extractor),
     judge: WriteGateJudge = Depends(get_judge),
+    embedder: Embedder = Depends(get_embedder),
 ) -> IngestOut:
     """Per ADR-005: the secrets check runs right now, before anything is
     queued. Extraction and the write gate run in the background."""
@@ -78,7 +108,9 @@ def ingest(
                 """,
                 (tenant_id, str(msg.session_id), msg.role, stored_text),
             )
-            turn_id = cur.fetchone()[0]
+            row = cur.fetchone()
+            assert row is not None
+            turn_id = row[0]
             if pii_blocked:
                 cur.execute(
                     """
@@ -88,14 +120,17 @@ def ingest(
                     (tenant_id, f"{len(findings)} secret(s) redacted from turn {turn_id}"),
                 )
 
-    background_tasks.add_task(process_turn, tenant_id, str(turn_id), stored_text, extractor, judge)
+    background_tasks.add_task(
+        process_turn, tenant_id, str(turn_id), stored_text, extractor, judge, embedder
+    )
 
     return IngestOut(turn_id=turn_id, status="queued", pii_blocked=pii_blocked)
 
 
 @app.get("/v1/memories", response_model=list[MemoryOut])
 def list_memories(tenant_id: str = Depends(verify_token)) -> list[MemoryOut]:
-    """List this tenant's active memories. Ranking/hybrid search: M2."""
+    """List this tenant's active memories — inspection/dashboard use, not the
+    answer-time retrieval path (that's POST /v1/memories:retrieve below)."""
     with tenant_connection(tenant_id) as conn:
         with conn.cursor() as cur:
             cur.execute(
@@ -111,3 +146,37 @@ def list_memories(tenant_id: str = Depends(verify_token)) -> list[MemoryOut]:
         MemoryOut(id=r[0], type=r[1], content=r[2], importance=r[3], confidence=r[4])
         for r in rows
     ]
+
+
+@app.post("/v1/memories:retrieve", response_model=RetrieveOut)
+def retrieve(
+    body: RetrieveIn,
+    tenant_id: str = Depends(verify_token),
+    embedder: Embedder = Depends(get_embedder),
+) -> RetrieveOut:
+    """Hybrid search (vector + keyword + entity) + C6 ranking + INV-6
+    relevance-bar abstention. `rerank` is accepted for forward compatibility
+    with ADR-006 but not implemented until M6 — it never changes the result
+    in this milestone."""
+    with tenant_connection(tenant_id) as conn:
+        with conn.cursor() as cur:
+            result = hybrid_search(
+                cur, body.query, embedder, k_max=body.k_max, token_budget=body.token_budget
+            )
+    return RetrieveOut(
+        memories=[
+            ScoredMemoryOut(
+                id=uuid.UUID(m.id),
+                type=m.type,
+                content=m.content,
+                score=m.score,
+                importance=m.importance,
+                confidence=m.confidence,
+                created_at=m.created_at.isoformat(),
+            )
+            for m in result.memories
+        ],
+        abstained=result.abstained,
+        tokens_used=result.tokens_used,
+        signals=result.signals,
+    )

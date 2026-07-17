@@ -1,9 +1,13 @@
+import hashlib
+import random
 import time
 import uuid
 from pathlib import Path
 
 import psycopg
 import pytest
+
+from retrieval.embedder import EMBEDDING_DIM
 
 ADMIN_DSN = "postgresql://cmis:cmis_dev_only@localhost:5433/cmis"
 SCHEMA_SQL = Path(__file__).parent.parent / "db" / "schema.sql"
@@ -81,12 +85,36 @@ class FakeJudge:
         return self.decision_fn(candidate)
 
 
+class FakeEmbedder:
+    """Deterministic stand-in for VoyageEmbedder (C14: repeatable testing —
+    must not depend on a live embedding API call).
+
+    Tests that need to control *similarity* (e.g. "these two sentences are
+    semantically related despite sharing no words") pass an explicit
+    text->vector map; give both texts the identical vector to force
+    similarity 1.0. Any text not in the map gets a stable hash-derived
+    vector so unrelated texts land far apart (near-orthogonal, as real
+    embeddings would for unrelated content) without colliding with the
+    explicit ones.
+    """
+
+    def __init__(self, vectors: dict[str, list[float]] | None = None):
+        self.vectors = vectors or {}
+
+    def embed(self, text: str) -> list[float]:
+        if text in self.vectors:
+            return self.vectors[text]
+        seed = int.from_bytes(hashlib.sha256(text.encode()).digest()[:8], "big")
+        rng = random.Random(seed)
+        return [rng.uniform(-1, 1) for _ in range(EMBEDDING_DIM)]
+
+
 @pytest.fixture
 def client():
     from fastapi.testclient import TestClient
 
     from api.main import app
-    from write_gate.pipeline import get_extractor, get_judge
+    from write_gate.pipeline import get_embedder, get_extractor, get_judge
     from write_gate.judge import Decision
 
     # Safe defaults: extract nothing, reject anything unexpected. Individual
@@ -95,5 +123,6 @@ def client():
     app.dependency_overrides[get_judge] = lambda: FakeJudge(
         lambda candidate: Decision(keep=False, importance=1, confidence=0.0, reason="unexpected candidate in test")
     )
+    app.dependency_overrides[get_embedder] = lambda: FakeEmbedder()
     yield TestClient(app)
     app.dependency_overrides.clear()

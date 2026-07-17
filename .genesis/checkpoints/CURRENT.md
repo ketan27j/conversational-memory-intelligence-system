@@ -1,10 +1,10 @@
 # CURRENT
-- active_loop: NONE (M0 complete, M1 not yet started)
-- target: M1
+- active_loop: BUILD
+- target: M2
 - iteration: 0
-- last_gate: G5 Verify (pass — APPROVE, quiz answered) on M0
-- last_action: M0 DONE — tenant isolation foundation shipped, L4 VERIFY approved, quiz-me gate answered by human, checkpoints/M0.md closed out
-- next_action: run G0 Existence Pre-Flight for M1 (write gate, secrets filter, fact extraction)
+- last_gate: G5 Verify (pass — APPROVE, quiz answered) on M1
+- last_action: M1 DONE — write gate, secrets filter, fact extraction shipped, L4 VERIFY approved (attempt 2), quiz-me gate answered by human, checkpoints/M1.md closed out
+- next_action: G0 done (checkpoints/M2.md) — begin L1 BUILD iter 1: implementation/retrieval/** (embedder, entity extractor, indexer, hybrid search)
 - model: claude-sonnet-5
 - tokens_used: 0
 - tokens_budget: 50000
