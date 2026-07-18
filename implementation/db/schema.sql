@@ -97,6 +97,30 @@ CREATE POLICY tenant_isolation ON audit_log
     USING (tenant_id = current_setting('app.tenant_id', true)::uuid)
     WITH CHECK (tenant_id = current_setting('app.tenant_id', true)::uuid);
 
+-- ── request_metric (M5) ──────────────────────────────────────────────────────
+-- Per-request latency + cost, one row per ingest/retrieve call (C12: "measure
+-- whether it works" — usage rate, correction rate come from audit_log; latency
+-- and cost come from here). Not merged into audit_log: audit_log's action CHECK
+-- is a closed decision vocabulary (stored/rejected/retrieved/...), while this
+-- is a numeric measurement written on every call regardless of outcome.
+CREATE TABLE request_metric (
+    id         BIGSERIAL PRIMARY KEY,
+    tenant_id  UUID NOT NULL,
+    endpoint   TEXT NOT NULL CHECK (endpoint IN ('ingest', 'retrieve')),
+    latency_ms REAL NOT NULL,
+    cost_usd   REAL NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_request_metric_tenant_id ON request_metric (tenant_id);
+
+ALTER TABLE request_metric ENABLE ROW LEVEL SECURITY;
+ALTER TABLE request_metric FORCE ROW LEVEL SECURITY;
+
+CREATE POLICY tenant_isolation ON request_metric
+    USING (tenant_id = current_setting('app.tenant_id', true)::uuid)
+    WITH CHECK (tenant_id = current_setting('app.tenant_id', true)::uuid);
+
 -- ── application role ─────────────────────────────────────────────────────────
 -- The app connects as a non-superuser role. RLS is not bypassed by superusers
 -- or table owners unless BYPASSRLS is granted — this role never gets it.
@@ -112,6 +136,7 @@ GRANT CONNECT ON DATABASE cmis TO cmis_app;
 GRANT USAGE ON SCHEMA public TO cmis_app;
 GRANT SELECT, INSERT, UPDATE ON memory, memory_entity, conversation_turn TO cmis_app;
 GRANT SELECT, INSERT ON audit_log TO cmis_app;
+GRANT SELECT, INSERT ON request_metric TO cmis_app;
 GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO cmis_app;
 
 -- ── job role (M4) ────────────────────────────────────────────────────────────

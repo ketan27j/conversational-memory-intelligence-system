@@ -17,10 +17,22 @@ stored memory against existing active memories on the same subject
 (contradiction/detector.py) and resolve who wins (contradiction/resolver.py,
 C8) — in the same cursor/transaction, so a kept memory's contradiction with
 history is settled before this function returns.
+
+M5 addition (checkpoints/M5.md): one `request_metric` row per turn, costing
+the extraction + write-gate judge calls this function already made — the
+only place that has both the input `text` and every `candidate` in hand
+without adding a new touch to extraction/extractor.py or write_gate/judge.py
+(out of M5's declared freeze boundary, and both already have FakeExtractor/
+FakeJudge test doubles per C14 that a return-shape change would need to
+follow). Cost is a length-based estimate (observability/metrics.py), not a
+captured `usage.input_tokens`/`output_tokens`, for the same reason.
 """
+import time
+
 from contradiction.detector import find_same_subject
 from contradiction.resolver import resolve_contradictions
 from extraction.extractor import AnthropicFactExtractor, FactExtractor
+from observability.metrics import estimate_llm_cost_usd, record_metric
 from retrieval.embedder import Embedder, VoyageEmbedder
 from retrieval.indexer import index_memory
 from write_gate.judge import AnthropicWriteGateJudge, WriteGateJudge
@@ -47,7 +59,15 @@ def process_turn(
     judge: WriteGateJudge,
     embedder: Embedder,
 ) -> None:
+    start = time.monotonic()
     candidates = extractor.extract(text)
+    # Judge output is a short JSON decision, not proportional to candidate
+    # length — approximated at a fixed size rather than a per-candidate one.
+    _JUDGE_OUTPUT_CHARS_ESTIMATE = 80
+    cost_usd = estimate_llm_cost_usd(len(text), sum(len(c) for c in candidates))
+    cost_usd += sum(
+        estimate_llm_cost_usd(len(c), _JUDGE_OUTPUT_CHARS_ESTIMATE) for c in candidates
+    )
 
     with tenant_connection(tenant_id) as conn:
         for candidate in candidates:
@@ -84,3 +104,6 @@ def process_turn(
                         """,
                         (tenant_id, decision.reason),
                     )
+        latency_ms = (time.monotonic() - start) * 1000
+        with conn.cursor() as cur:
+            record_metric(cur, tenant_id, "ingest", latency_ms, cost_usd)

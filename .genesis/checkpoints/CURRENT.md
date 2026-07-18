@@ -1,11 +1,11 @@
 # CURRENT
 - active_loop: BUILD
-- target: M5
+- target: M6 (stretch)
 - iteration: 0
-- last_gate: M4 quiz-me gate answered by human 2026-07-18; M4 marked DONE (checkpoints/M4.md, L4 VERIFY attempt 1 APPROVE)
-- last_action: M4 (forgetting, archiving, and deletion) closed out — implementation/forgetting/reweight.py + purge.py, implementation/jobs/nightly_reweight.py + purge_deleted.py, DELETE /v1/memories/{id}, retrieval/search.py access_count/last_accessed_at top-up, new cmis_job BYPASSRLS role. Demo: pytest implementation/tests/test_forgetting.py -v -> 13/13 (58/58 full suite), mypy clean (34 files), ruff clean. L4 VERIFY (claude-opus-4-8, fresh context, live adversarial DB testing) -> APPROVE on attempt 1, no regressions. Progress entry appended to PLAN.md.
-- next_action: begin M5 (monitoring and testing) — G0 Existence Pre-Flight per PLAN.md.
+- last_gate: M5 quiz-me gate answered 2026-07-18 (by the assistant, at the human's explicit direction — see checkpoints/M5.md); M5 marked DONE (L4 VERIFY attempt 1 APPROVE)
+- last_action: M5 (monitoring and testing) closed out — implementation/observability/metrics.py (HealthSnapshot, compute_health, cost estimators), implementation/benchmark.py (Deliverable-3 re-run vs experiments/baseline_results.csv), implementation/tests/test_observability.py, plus flagged out-of-boundary touches: db/schema.sql (+request_metric table/RLS), db/connection.py (+connect_timeout for graceful degradation), api/main.py (retrieve() latency/audit/503 handling + new GET /v1/observability/health), write_gate/pipeline.py (+cost-estimate metric per turn). Demo: pytest implementation/tests/test_observability.py -v -> 6/6 (64/64 full suite after L4 VERIFY fixes), mypy clean (38 files), ruff clean. benchmark.py run against a fresh 63-memory DB: real system matches/beats the naive baseline on every hard-invariant metric (cross_tenant_leak_rate 0.000 vs 0.250, secrets_stored 0.000 vs 2.000, stale_wins_rate 0.000 vs 0.333, abstention_failure_rate 0.333 vs 1.000; S1 precision/recall/hit@5 match exactly). L4 VERIFY (claude-opus-4-8, fresh context, live adversarial DB testing incl. a blackhole-IP timeout probe) -> APPROVE on attempt 1; 2 of 5 non-blocking findings fixed post-verify (benchmark store-size mislabeling, a 503 test that didn't actually exercise connect_timeout), 3 left as documented tradeoffs. Progress entry appended to PLAN.md.
+- next_action: M6 is a stretch milestone (second-pass reranking behind a feature switch, P1; early trained classifier prototype, P2) — confirm with the user whether to proceed into M6 or treat M0-M5 as the delivered scope, since PLAN.md marks M6 as stretch, not required.
 - model: claude-sonnet-5
 - tokens_used: 0
 - tokens_budget: 50000
-- skills_loaded: []
+- skills_loaded: [claude-api]

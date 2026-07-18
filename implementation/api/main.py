@@ -13,16 +13,26 @@ milestone's outcome is documented against. M3 adds `POST /v1/memories:feedback`
 (`implementation/forgetting/**` + `implementation/jobs/**`) since INV-4
 ("gone from reads instantly") can only be demonstrated through the real HTTP
 contract, same "necessary alignment, not scope creep" precedent as M1-M3.
+M5 adds latency/audit/cost instrumentation to `retrieve()` and
+`GET /v1/observability/health` (checkpoints/M5.md) — required outside M5's
+declared freeze boundary (`implementation/observability/**` +
+`implementation/benchmark.py`) since C12's health numbers must be computed
+from real per-request data, not fixtures, and C13/INV-7 graceful degradation
+("the lookup times out and the assistant answers without memory") can only
+be demonstrated through the real HTTP contract's `503 memory_unavailable`.
 """
+import time
 import uuid
 from typing import Literal
 
+import psycopg
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from api.auth import verify_token
 from db.connection import tenant_connection
 from extraction.extractor import FactExtractor
+from observability.metrics import HealthSnapshot, compute_health, estimate_embedding_cost_usd, record_metric
 from retrieval.embedder import Embedder
 from retrieval.search import hybrid_search
 from secrets_filter import detector
@@ -179,12 +189,35 @@ def retrieve(
     """Hybrid search (vector + keyword + entity) + C6 ranking + INV-6
     relevance-bar abstention. `rerank` is accepted for forward compatibility
     with ADR-006 but not implemented until M6 — it never changes the result
-    in this milestone."""
-    with tenant_connection(tenant_id) as conn:
-        with conn.cursor() as cur:
-            result = hybrid_search(
-                cur, body.query, embedder, k_max=body.k_max, token_budget=body.token_budget
-            )
+    in this milestone.
+
+    C13/INV-7 (api_contracts.md): "the lookup times out and the assistant
+    answers without memory". `tenant_connection`'s `connect_timeout` (M5,
+    db/connection.py) bounds how long a down/unreachable database can hang
+    this call; either that timeout or any other connection failure is
+    reported as 503 `memory_unavailable` rather than a 500 or a hang, so the
+    caller can answer the turn without memory instead of failing it."""
+    start = time.monotonic()
+    try:
+        with tenant_connection(tenant_id) as conn:
+            with conn.cursor() as cur:
+                result = hybrid_search(
+                    cur, body.query, embedder, k_max=body.k_max, token_budget=body.token_budget
+                )
+                latency_ms = (time.monotonic() - start) * 1000
+                cur.execute(
+                    """
+                    INSERT INTO audit_log (tenant_id, actor, action, detail)
+                    VALUES (%s, 'retrieval', 'retrieved', %s)
+                    """,
+                    (tenant_id, f"{len(result.memories)} memories, abstained={result.abstained}"),
+                )
+                record_metric(
+                    cur, tenant_id, "retrieve", latency_ms,
+                    estimate_embedding_cost_usd(len(body.query)),
+                )
+    except psycopg.OperationalError:
+        raise HTTPException(status_code=503, detail="memory_unavailable")
     return RetrieveOut(
         memories=[
             ScoredMemoryOut(
@@ -279,3 +312,16 @@ def delete_memory(memory_id: uuid.UUID, tenant_id: str = Depends(verify_token)) 
                 (tenant_id, str(memory_id)),
             )
     return DeleteOut(id=memory_id, status="deleted", purge_within_seconds=PURGE_WINDOW_SECONDS)
+
+
+@app.get("/v1/observability/health", response_model=HealthSnapshot)
+def health(tenant_id: str = Depends(verify_token)) -> HealthSnapshot:
+    """C12 (first_principles.md): the four health numbers — usage rate,
+    correction rate, latency, cost — for this tenant. Tenant-scoped like
+    `GET /v1/memories` (same "inspection/dashboard, not the live request
+    path" role, same reasoning as that endpoint's own docstring): no
+    BYPASSRLS role is exposed on any HTTP endpoint (M0's hardening note),
+    so a cross-tenant aggregate dashboard is not offered here."""
+    with tenant_connection(tenant_id) as conn:
+        with conn.cursor() as cur:
+            return compute_health(cur)

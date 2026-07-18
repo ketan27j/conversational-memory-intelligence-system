@@ -33,12 +33,12 @@
   <p class="sub"><b>Rolling source of truth for what is LIVE right now.</b> The wiki can lag; this file
      cannot. Read this on every session start to avoid rebuilding what exists. This is your
      <i>git-like restart point</i>: if context is lost, this file rehydrates you.
-     Last updated: <code>2026-07-14</code> · by loop: <code>L1-BUILD-M0</code></p>
+     Last updated: <code>2026-07-18</code> · by loop: <code>L1-BUILD-M5</code></p>
 
   <!-- ───────────── ONE-LINE STATUS ───────────── -->
   <div class="card live">
-    <b>Now in flight:</b> nothing — M0 closed out, M1 not yet started<br>
-    <b>Active loop:</b> NONE · <b>Current milestone:</b> M0 (done) → next is M1 · <b>Phase:</b> Phase 5/6/11 (write gate, secrets, memory)<br>
+    <b>Now in flight:</b> nothing — M0 through M5 closed out; M6 is stretch scope, not yet started<br>
+    <b>Active loop:</b> NONE · <b>Current milestone:</b> M5 (done) → M6 is stretch (confirm with user before starting) · <b>Phase:</b> Phase 9/10/12 (evaluation, observability, reliability)<br>
     <b>Blocked on:</b> nothing
   </div>
 
@@ -52,8 +52,12 @@
         <tr><td>Tenant isolation (row-level security, fail-closed on unscoped connections)</td><td><code>implementation/db/schema.sql</code> (tenant_isolation policy), <code>implementation/db/connection.py</code></td><td><span class="pill live">live</span></td><td>tests/test_tenant_isolation.py — cross-tenant leak 0/0, unfiltered query refused by DB; L4 VERIFY APPROVE</td></tr>
         <tr><td>Auth: verified-token → tenant_id (stub, not real IdP)</td><td><code>implementation/api/auth.py</code></td><td><span class="pill live">live</span></td><td>tests/test_tenant_isolation.py::test_get_memories_requires_a_token</td></tr>
         <tr><td>POST /messages, GET /memories (skeleton — no extraction/write-gate/ranking yet)</td><td><code>implementation/api/main.py</code></td><td><span class="pill live">live</span></td><td>tests/test_tenant_isolation.py</td></tr>
-        <tr><td>Write gate, secrets filter, fact extraction (M1)</td><td>—</td><td><span class="pill wip">not started</span></td><td>—</td></tr>
-        <tr><td>Hybrid search / ranking (M2), contradictions (M3), forgetting (M4), observability (M5)</td><td>—</td><td><span class="pill wip">not started</span></td><td>—</td></tr>
+        <tr><td>Write gate, secrets filter, fact extraction, POST /v1/memories:ingest (M1)</td><td><code>implementation/write_gate/**</code>, <code>implementation/extraction/**</code>, <code>implementation/secrets_filter/**</code></td><td><span class="pill live">live</span></td><td>tests/test_write_gate.py; L4 VERIFY APPROVE (attempt 2)</td></tr>
+        <tr><td>Hybrid search + C6 ranking + relevance-bar abstention, POST /v1/memories:retrieve (M2)</td><td><code>implementation/retrieval/**</code></td><td><span class="pill live">live</span></td><td>tests/test_retrieval.py; L4 VERIFY APPROVE (attempt 2)</td></tr>
+        <tr><td>Write-time contradiction detection/resolution, POST /v1/memories:feedback (M3)</td><td><code>implementation/contradiction/**</code></td><td><span class="pill live">live</span></td><td>tests/test_contradiction.py; L4 VERIFY APPROVE (attempt 1)</td></tr>
+        <tr><td>Forgetting (nightly reweight/archive), deletion + purge, DELETE /v1/memories/{id} (M4)</td><td><code>implementation/forgetting/**</code>, <code>implementation/jobs/**</code></td><td><span class="pill live">live</span></td><td>tests/test_forgetting.py; L4 VERIFY APPROVE (attempt 1)</td></tr>
+        <tr><td>Health numbers (usage/correction/latency/cost), 503 graceful degradation, GET /v1/observability/health, D3 benchmark re-run (M5)</td><td><code>implementation/observability/**</code>, <code>implementation/benchmark.py</code></td><td><span class="pill live">live</span></td><td>tests/test_observability.py; L4 VERIFY APPROVE (attempt 1)</td></tr>
+        <tr><td>Second-pass reranking (P1), trained write-gate classifier prototype (P2) (M6, stretch)</td><td>—</td><td><span class="pill wip">not started</span></td><td>—</td></tr>
       </tbody>
     </table>
     <p class="note">Append a row the moment a milestone passes L4 VERIFY. The grep in G0 checks against this table.</p>

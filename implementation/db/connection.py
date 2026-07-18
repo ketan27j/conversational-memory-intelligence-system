@@ -21,6 +21,12 @@ JOB_DSN = os.environ.get(
     "postgresql://cmis_job:cmis_job_dev_only@localhost:5433/cmis",
 )
 
+# C13/INV-7 (api_contracts.md): "the lookup times out and the assistant
+# answers without memory" — a hung connection attempt would violate that
+# promise just as badly as an exception, so every connection to the live
+# request path fails fast rather than waiting on the OS default.
+CONNECT_TIMEOUT_SECONDS = 2
+
 
 @contextmanager
 def tenant_connection(tenant_id: str) -> Iterator[Connection]:
@@ -30,7 +36,7 @@ def tenant_connection(tenant_id: str) -> Iterator[Connection]:
     never from a request body or query param — that is the whole point of
     T7's mitigation (threat_model.md).
     """
-    conn = psycopg.connect(DSN)
+    conn = psycopg.connect(DSN, connect_timeout=CONNECT_TIMEOUT_SECONDS)
     try:
         with conn.cursor() as cur:
             cur.execute("SELECT set_config('app.tenant_id', %s, false)", (tenant_id,))
