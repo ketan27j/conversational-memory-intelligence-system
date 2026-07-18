@@ -11,7 +11,15 @@ outside M2's declared freeze boundary (`implementation/retrieval/**`):
 without it, hybrid search would only ever see hand-seeded test fixtures,
 never a real write. Same "necessary alignment, not scope creep" precedent
 M1 used when it touched api/main.py for the M0-declared endpoints.
+
+M3 addition (checkpoints/M3.md): right after indexing, check the newly
+stored memory against existing active memories on the same subject
+(contradiction/detector.py) and resolve who wins (contradiction/resolver.py,
+C8) — in the same cursor/transaction, so a kept memory's contradiction with
+history is settled before this function returns.
 """
+from contradiction.detector import find_same_subject
+from contradiction.resolver import resolve_contradictions
 from extraction.extractor import AnthropicFactExtractor, FactExtractor
 from retrieval.embedder import Embedder, VoyageEmbedder
 from retrieval.indexer import index_memory
@@ -59,6 +67,8 @@ def process_turn(
                     assert row is not None
                     memory_id = row[0]
                     index_memory(cur, memory_id, tenant_id, candidate, embedder)
+                    same_subject = find_same_subject(cur, memory_id, "fact")
+                    resolve_contradictions(cur, tenant_id, memory_id, decision.confidence, same_subject)
                     cur.execute(
                         """
                         INSERT INTO audit_log (tenant_id, actor, action, memory_id, detail)

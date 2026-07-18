@@ -20,7 +20,7 @@ CREATE TABLE memory (
     last_accessed_at TIMESTAMPTZ,
     access_count     INTEGER NOT NULL DEFAULT 0,
     weight           REAL NOT NULL DEFAULT 1.0,
-    status           TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'archived', 'deleted')),
+    status           TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'archived', 'deleted', 'superseded')),
     superseded_by    UUID REFERENCES memory(id)
 );
 

@@ -1,10 +1,10 @@
 # CURRENT
 - active_loop: BUILD
-- target: M3
+- target: M4
 - iteration: 0
-- last_gate: G5 Verify (pass — APPROVE, quiz answered) on M2
-- last_action: M2 DONE — hybrid search (vector+keyword+entity), C6/C7 ranking blend, relevance-floor abstention, write-time indexing wired into write_gate/pipeline.py; L4 VERIFY approved (attempt 2, attempt 1 caught a real abstention bug fixed via L2 DEBUG); quiz-me gate answered by human; checkpoints/M2.md closed out; progress appended to PLAN.md
-- next_action: G0 done (checkpoints/M3.md) — begin L1 BUILD iter 1: implementation/contradiction/** (write-time contradiction check against existing memories on the same subject, superseded_by wiring, POST /v1/memories:feedback correction endpoint). Note: G0 surfaced a schema gap — status CHECK constraint needs a 'superseded' value added via migration before the write-time check can flip a row's status; resolve as part of the M3 micro-plan.
+- last_gate: M3 quiz-me gate answered by human 2026-07-18; M3 marked DONE (checkpoints/M3.md, L4 VERIFY attempt 1 APPROVE)
+- last_action: M3 (handling contradictions) closed out — implementation/contradiction/detector.py + resolver.py (write-time same-subject detection + C8 newer-and-at-least-as-confident-wins resolution), write_gate/pipeline.py wired, POST /v1/memories:feedback added, schema.sql + live dev DB status constraint extended with 'superseded'. Demo: pytest implementation/tests/test_contradiction.py -v -> 10/10 (45/45 full suite), mypy clean (27 files), ruff clean. L4 VERIFY (claude-opus-4-8, fresh context) -> APPROVE on attempt 1, no regressions. Progress entry appended to PLAN.md.
+- next_action: begin M4 (forgetting, archiving, and deletion) — G0 Existence Pre-Flight per PLAN.md: implementation/forgetting/**, implementation/jobs/**, demo pytest implementation/tests/test_forgetting.py -v.
 - model: claude-sonnet-5
 - tokens_used: 0
 - tokens_budget: 50000
