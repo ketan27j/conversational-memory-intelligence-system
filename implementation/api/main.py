@@ -8,7 +8,11 @@ relevance-bar abstention) — the other required touch outside M2's declared
 freeze boundary, since api_contracts.md's retrieve contract is what this
 milestone's outcome is documented against. M3 adds `POST /v1/memories:feedback`
 — the user-facing "that's wrong"/"that's out of date" correction endpoint
-`design/api_contracts.md` documents for this milestone.
+`design/api_contracts.md` documents for this milestone. M4 adds
+`DELETE /v1/memories/{id}` — required outside M4's declared freeze boundary
+(`implementation/forgetting/**` + `implementation/jobs/**`) since INV-4
+("gone from reads instantly") can only be demonstrated through the real HTTP
+contract, same "necessary alignment, not scope creep" precedent as M1-M3.
 """
 import uuid
 from typing import Literal
@@ -80,6 +84,12 @@ class FeedbackIn(BaseModel):
 class FeedbackOut(BaseModel):
     superseded: bool
     new_status: str
+
+
+class DeleteOut(BaseModel):
+    id: uuid.UUID
+    status: Literal["deleted"]
+    purge_within_seconds: int
 
 
 @app.post("/v1/memories:ingest", response_model=IngestOut, status_code=201)
@@ -227,3 +237,45 @@ def feedback(body: FeedbackIn, tenant_id: str = Depends(verify_token)) -> Feedba
                 (tenant_id, str(body.memory_id), f"signal={body.signal}"),
             )
     return FeedbackOut(superseded=True, new_status="superseded")
+
+
+# INV-4 (context-graph.json): the promised window between "marked deleted"
+# and "physically purged" (implementation/forgetting/purge.py finishes the
+# second half, on a short interval — see implementation/jobs/purge_deleted.py).
+PURGE_WINDOW_SECONDS = 60
+
+
+@app.delete("/v1/memories/{memory_id}", response_model=DeleteOut)
+def delete_memory(memory_id: uuid.UUID, tenant_id: str = Depends(verify_token)) -> DeleteOut:
+    """Right to be forgotten (design/api_contracts.md, C11, INV-4). Marks the
+    memory deleted immediately — from this instant no read returns it — and
+    leaves the physical row removal to `forgetting.purge.run_purge_job`
+    within `purge_within_seconds` (data_model.md's two-step order: invisible
+    first, physically gone second). Unknown/cross-tenant id -> 404 (RLS makes
+    the two indistinguishable, same reasoning as the feedback endpoint).
+    Already-deleted -> 200 idempotent, no re-audit. Any other status
+    (archived/superseded) is still a valid delete target — the right to be
+    forgotten applies regardless of a memory's current lifecycle stage."""
+    with tenant_connection(tenant_id) as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT status FROM memory WHERE id = %s", (str(memory_id),))
+            row = cur.fetchone()
+            if row is None:
+                raise HTTPException(status_code=404, detail="memory_not_found")
+            if row[0] == "deleted":
+                return DeleteOut(
+                    id=memory_id, status="deleted", purge_within_seconds=PURGE_WINDOW_SECONDS
+                )
+
+            cur.execute(
+                "UPDATE memory SET status = 'deleted', updated_at = now() WHERE id = %s",
+                (str(memory_id),),
+            )
+            cur.execute(
+                """
+                INSERT INTO audit_log (tenant_id, actor, action, memory_id, detail)
+                VALUES (%s, 'user_request', 'deleted', %s, 'marked deleted, pending purge')
+                """,
+                (tenant_id, str(memory_id)),
+            )
+    return DeleteOut(id=memory_id, status="deleted", purge_within_seconds=PURGE_WINDOW_SECONDS)

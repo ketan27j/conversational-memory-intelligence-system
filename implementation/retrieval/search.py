@@ -246,6 +246,21 @@ def hybrid_search(
         # relevant" should look the same.
         return RetrieveResult(memories=[], abstained=True, tokens_used=0, signals={})
 
+    # M4 (checkpoints/M4.md G0): "topped up" on retrieval (first_principles.md
+    # C9) — bump access_count/last_accessed_at for the memories actually
+    # returned, after ranking read the pre-bump access_count, so a query
+    # never inflates its own ranking mid-request. Without this, C9's
+    # forgetting job would have no real usage signal to work from, only
+    # hand-seeded test fixtures.
+    cur.execute(
+        """
+        UPDATE memory
+        SET access_count = access_count + 1, last_accessed_at = %s
+        WHERE id = ANY(%s::uuid[])
+        """,
+        (now, [mem.id for mem in selected]),
+    )
+
     top = selected[0]
     signals = {
         "semantic": round(top.semantic, 4),

@@ -113,3 +113,26 @@ GRANT USAGE ON SCHEMA public TO cmis_app;
 GRANT SELECT, INSERT, UPDATE ON memory, memory_entity, conversation_turn TO cmis_app;
 GRANT SELECT, INSERT ON audit_log TO cmis_app;
 GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO cmis_app;
+
+-- ── job role (M4) ────────────────────────────────────────────────────────────
+-- The nightly forgetting/purge jobs must sweep every tenant in one pass, but
+-- RLS (ADR-004) scopes every connection to exactly one tenant and there is no
+-- tenant registry table to enumerate tenants through. `cmis_app` (RLS-bound,
+-- used by every live request) cannot do this; reusing the `cmis` table-owner
+-- superuser would violate M0's own hardening note that it is reserved for
+-- one-time schema setup only. `cmis_job` is a third, narrowly-scoped role:
+-- BYPASSRLS so it can see every tenant's rows, but with only the grants the
+-- forgetting/purge jobs actually need, and never used by any HTTP endpoint.
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'cmis_job') THEN
+        CREATE ROLE cmis_job LOGIN PASSWORD 'cmis_job_dev_only' NOSUPERUSER BYPASSRLS;
+    END IF;
+END
+$$;
+
+GRANT CONNECT ON DATABASE cmis TO cmis_job;
+GRANT USAGE ON SCHEMA public TO cmis_job;
+GRANT SELECT, UPDATE, DELETE ON memory TO cmis_job;
+GRANT INSERT ON audit_log TO cmis_job;
+GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO cmis_job;

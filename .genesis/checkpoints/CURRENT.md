@@ -1,10 +1,10 @@
 # CURRENT
 - active_loop: BUILD
-- target: M4
+- target: M5
 - iteration: 0
-- last_gate: M3 quiz-me gate answered by human 2026-07-18; M3 marked DONE (checkpoints/M3.md, L4 VERIFY attempt 1 APPROVE)
-- last_action: M3 (handling contradictions) closed out — implementation/contradiction/detector.py + resolver.py (write-time same-subject detection + C8 newer-and-at-least-as-confident-wins resolution), write_gate/pipeline.py wired, POST /v1/memories:feedback added, schema.sql + live dev DB status constraint extended with 'superseded'. Demo: pytest implementation/tests/test_contradiction.py -v -> 10/10 (45/45 full suite), mypy clean (27 files), ruff clean. L4 VERIFY (claude-opus-4-8, fresh context) -> APPROVE on attempt 1, no regressions. Progress entry appended to PLAN.md.
-- next_action: begin M4 (forgetting, archiving, and deletion) — G0 Existence Pre-Flight per PLAN.md: implementation/forgetting/**, implementation/jobs/**, demo pytest implementation/tests/test_forgetting.py -v.
+- last_gate: M4 quiz-me gate answered by human 2026-07-18; M4 marked DONE (checkpoints/M4.md, L4 VERIFY attempt 1 APPROVE)
+- last_action: M4 (forgetting, archiving, and deletion) closed out — implementation/forgetting/reweight.py + purge.py, implementation/jobs/nightly_reweight.py + purge_deleted.py, DELETE /v1/memories/{id}, retrieval/search.py access_count/last_accessed_at top-up, new cmis_job BYPASSRLS role. Demo: pytest implementation/tests/test_forgetting.py -v -> 13/13 (58/58 full suite), mypy clean (34 files), ruff clean. L4 VERIFY (claude-opus-4-8, fresh context, live adversarial DB testing) -> APPROVE on attempt 1, no regressions. Progress entry appended to PLAN.md.
+- next_action: begin M5 (monitoring and testing) — G0 Existence Pre-Flight per PLAN.md.
 - model: claude-sonnet-5
 - tokens_used: 0
 - tokens_budget: 50000

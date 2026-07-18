@@ -16,6 +16,11 @@ DSN = os.environ.get(
     "postgresql://cmis_app:cmis_app_dev_only@localhost:5433/cmis",
 )
 
+JOB_DSN = os.environ.get(
+    "CMIS_JOB_DATABASE_URL",
+    "postgresql://cmis_job:cmis_job_dev_only@localhost:5433/cmis",
+)
+
 
 @contextmanager
 def tenant_connection(tenant_id: str) -> Iterator[Connection]:
@@ -29,6 +34,27 @@ def tenant_connection(tenant_id: str) -> Iterator[Connection]:
     try:
         with conn.cursor() as cur:
             cur.execute("SELECT set_config('app.tenant_id', %s, false)", (tenant_id,))
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+@contextmanager
+def job_connection() -> Iterator[Connection]:
+    """Cross-tenant connection for the M4 nightly forgetting/purge jobs only.
+
+    Connects as `cmis_job` (BYPASSRLS) — never `cmis_app` (RLS-restricted,
+    used by every live request) and never the `cmis` superuser (reserved for
+    one-time schema setup per M0's hardening note). There is no tenant
+    registry table, so a cross-tenant sweep has no way to enumerate tenants
+    except by bypassing RLS through this one, narrowly-scoped role.
+    """
+    conn = psycopg.connect(JOB_DSN)
+    try:
         yield conn
         conn.commit()
     except Exception:
