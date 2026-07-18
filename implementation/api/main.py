@@ -33,6 +33,7 @@ from api.auth import verify_token
 from db.connection import tenant_connection
 from extraction.extractor import FactExtractor
 from observability.metrics import HealthSnapshot, compute_health, estimate_embedding_cost_usd, record_metric
+from prototypes.reranker import Reranker, get_reranker
 from retrieval.embedder import Embedder
 from retrieval.search import hybrid_search
 from secrets_filter import detector
@@ -185,11 +186,18 @@ def retrieve(
     body: RetrieveIn,
     tenant_id: str = Depends(verify_token),
     embedder: Embedder = Depends(get_embedder),
+    reranker: Reranker = Depends(get_reranker),
 ) -> RetrieveOut:
     """Hybrid search (vector + keyword + entity) + C6 ranking + INV-6
-    relevance-bar abstention. `rerank` is accepted for forward compatibility
-    with ADR-006 but not implemented until M6 — it never changes the result
-    in this milestone.
+    relevance-bar abstention. `rerank` (M6, ADR-006, checkpoints/M6.md) now
+    does something real: a second-pass rescore of the returned candidates,
+    run after the DB transaction closes (the reranker needs no DB access,
+    so there's no reason to hold the connection open across what may be
+    several LLM round trips). Off by default (`rerank: bool = False`) and
+    stays off in production regardless of `prototypes/rerank_experiment.py`'s
+    verdict — ADR-006 requires the switch to ship off; this only makes the
+    already-accepted switch real instead of inert. Skipped entirely when the
+    search abstained or returned nothing — there's nothing to rescore.
 
     C13/INV-7 (api_contracts.md): "the lookup times out and the assistant
     answers without memory". `tenant_connection`'s `connect_timeout` (M5,
@@ -218,6 +226,11 @@ def retrieve(
                 )
     except psycopg.OperationalError:
         raise HTTPException(status_code=503, detail="memory_unavailable")
+
+    memories = result.memories
+    if body.rerank and not result.abstained and memories:
+        memories = reranker.rerank(body.query, memories)
+
     return RetrieveOut(
         memories=[
             ScoredMemoryOut(
@@ -229,7 +242,7 @@ def retrieve(
                 confidence=m.confidence,
                 created_at=m.created_at.isoformat(),
             )
-            for m in result.memories
+            for m in memories
         ],
         abstained=result.abstained,
         tokens_used=result.tokens_used,

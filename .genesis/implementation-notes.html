@@ -33,13 +33,13 @@
   <p class="sub"><b>Rolling source of truth for what is LIVE right now.</b> The wiki can lag; this file
      cannot. Read this on every session start to avoid rebuilding what exists. This is your
      <i>git-like restart point</i>: if context is lost, this file rehydrates you.
-     Last updated: <code>2026-07-18</code> · by loop: <code>L1-BUILD-M5</code></p>
+     Last updated: <code>2026-07-18</code> · by loop: <code>L1-BUILD-M6</code></p>
 
   <!-- ───────────── ONE-LINE STATUS ───────────── -->
   <div class="card live">
-    <b>Now in flight:</b> nothing — M0 through M5 closed out; M6 is stretch scope, not yet started<br>
-    <b>Active loop:</b> NONE · <b>Current milestone:</b> M5 (done) → M6 is stretch (confirm with user before starting) · <b>Phase:</b> Phase 9/10/12 (evaluation, observability, reliability)<br>
-    <b>Blocked on:</b> nothing
+    <b>Now in flight:</b> nothing — M0 through M6 (including the stretch milestone) all closed out<br>
+    <b>Active loop:</b> NONE · <b>Current milestone:</b> M6 (done) → no further milestones defined in PLAN.md · <b>Phase:</b> Phase 5 (prototyping track — reranker + write-gate classifier experiments)<br>
+    <b>Blocked on:</b> nothing — remaining open items are process-only (M6 quiz-me gate, whether to commit) and belong to the user
   </div>
 
   <!-- ───────────── WHAT'S LIVE ───────────── -->
@@ -57,7 +57,8 @@
         <tr><td>Write-time contradiction detection/resolution, POST /v1/memories:feedback (M3)</td><td><code>implementation/contradiction/**</code></td><td><span class="pill live">live</span></td><td>tests/test_contradiction.py; L4 VERIFY APPROVE (attempt 1)</td></tr>
         <tr><td>Forgetting (nightly reweight/archive), deletion + purge, DELETE /v1/memories/{id} (M4)</td><td><code>implementation/forgetting/**</code>, <code>implementation/jobs/**</code></td><td><span class="pill live">live</span></td><td>tests/test_forgetting.py; L4 VERIFY APPROVE (attempt 1)</td></tr>
         <tr><td>Health numbers (usage/correction/latency/cost), 503 graceful degradation, GET /v1/observability/health, D3 benchmark re-run (M5)</td><td><code>implementation/observability/**</code>, <code>implementation/benchmark.py</code></td><td><span class="pill live">live</span></td><td>tests/test_observability.py; L4 VERIFY APPROVE (attempt 1)</td></tr>
-        <tr><td>Second-pass reranking (P1), trained write-gate classifier prototype (P2) (M6, stretch)</td><td>—</td><td><span class="pill wip">not started</span></td><td>—</td></tr>
+        <tr><td>Second-pass reranker behind a switch (P1, ADR-006) — off by default; experiment verdict REJECT (accuracy gain real, latency over budget)</td><td><code>implementation/prototypes/reranker.py</code>, <code>rerank_experiment.py</code></td><td><span class="pill live">live (prototype, inert by design)</span></td><td>tests/test_prototypes.py -m stretch; L4 VERIFY APPROVE (attempt 1)</td></tr>
+        <tr><td>Write-gate classifier prototype (P2, ADR-001) — not wired to production judge; experiment verdict ADOPT vs a rule-based judge stand-in</td><td><code>implementation/prototypes/classifier.py</code>, <code>classifier_experiment.py</code>, <code>write_gate_decision</code> table</td><td><span class="pill live">live (prototype, non-production)</span></td><td>tests/test_prototypes.py -m stretch; L4 VERIFY APPROVE (attempt 1)</td></tr>
       </tbody>
     </table>
     <p class="note">Append a row the moment a milestone passes L4 VERIFY. The grep in G0 checks against this table.</p>

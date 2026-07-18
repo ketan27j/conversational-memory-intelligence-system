@@ -121,6 +121,37 @@ CREATE POLICY tenant_isolation ON request_metric
     USING (tenant_id = current_setting('app.tenant_id', true)::uuid)
     WITH CHECK (tenant_id = current_setting('app.tenant_id', true)::uuid);
 
+-- ── write_gate_decision (M6, ADR-001) ────────────────────────────────────────
+-- One row per write-gate judge call, both branches (kept AND dropped), with
+-- the candidate text itself — the actual labelled (text, label) example
+-- ADR-001's graduation plan and write_gate/judge.py's own docstring promise
+-- ("every decision is logged so it can become training data for a future
+-- classifier"). Before M6, only the kept branch's text was recoverable
+-- (via memory.content) and only indirectly; dropped candidates had no text
+-- anywhere in the audit trail. A dedicated table, not an audit_log column,
+-- for the same reason M5 gave request_metric its own table: audit_log's
+-- `detail` is free text for a human-readable log line, not a queryable
+-- training-data column.
+CREATE TABLE write_gate_decision (
+    id             BIGSERIAL PRIMARY KEY,
+    tenant_id      UUID NOT NULL,
+    candidate_text TEXT NOT NULL,
+    kept           BOOLEAN NOT NULL,
+    importance     SMALLINT NOT NULL,
+    confidence     REAL NOT NULL,
+    reason         TEXT NOT NULL,
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_write_gate_decision_tenant_id ON write_gate_decision (tenant_id);
+
+ALTER TABLE write_gate_decision ENABLE ROW LEVEL SECURITY;
+ALTER TABLE write_gate_decision FORCE ROW LEVEL SECURITY;
+
+CREATE POLICY tenant_isolation ON write_gate_decision
+    USING (tenant_id = current_setting('app.tenant_id', true)::uuid)
+    WITH CHECK (tenant_id = current_setting('app.tenant_id', true)::uuid);
+
 -- ── application role ─────────────────────────────────────────────────────────
 -- The app connects as a non-superuser role. RLS is not bypassed by superusers
 -- or table owners unless BYPASSRLS is granted — this role never gets it.
@@ -137,6 +168,7 @@ GRANT USAGE ON SCHEMA public TO cmis_app;
 GRANT SELECT, INSERT, UPDATE ON memory, memory_entity, conversation_turn TO cmis_app;
 GRANT SELECT, INSERT ON audit_log TO cmis_app;
 GRANT SELECT, INSERT ON request_metric TO cmis_app;
+GRANT SELECT, INSERT ON write_gate_decision TO cmis_app;
 GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO cmis_app;
 
 -- ── job role (M4) ────────────────────────────────────────────────────────────

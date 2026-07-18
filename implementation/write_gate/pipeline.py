@@ -26,8 +26,17 @@ without adding a new touch to extraction/extractor.py or write_gate/judge.py
 FakeJudge test doubles per C14 that a return-shape change would need to
 follow). Cost is a length-based estimate (observability/metrics.py), not a
 captured `usage.input_tokens`/`output_tokens`, for the same reason.
+
+M6 addition (checkpoints/M6.md, G0 gap): one `write_gate_decision` row per
+judge call, both branches — this docstring (and ADR-001) have claimed since
+M1 that "every decision is logged so it can become training data," but the
+reject branch never actually stored the candidate's text anywhere, only
+`decision.reason`. Without this, M6's write-gate-classifier prototype would
+have nothing real to train on.
 """
 import time
+
+from psycopg import Cursor
 
 from contradiction.detector import find_same_subject
 from contradiction.resolver import resolve_contradictions
@@ -35,8 +44,19 @@ from extraction.extractor import AnthropicFactExtractor, FactExtractor
 from observability.metrics import estimate_llm_cost_usd, record_metric
 from retrieval.embedder import Embedder, VoyageEmbedder
 from retrieval.indexer import index_memory
-from write_gate.judge import AnthropicWriteGateJudge, WriteGateJudge
+from write_gate.judge import AnthropicWriteGateJudge, Decision, WriteGateJudge
 from db.connection import tenant_connection
+
+
+def _record_decision(cur: Cursor, tenant_id: str, candidate: str, decision: Decision) -> None:
+    cur.execute(
+        """
+        INSERT INTO write_gate_decision
+            (tenant_id, candidate_text, kept, importance, confidence, reason)
+        VALUES (%s, %s, %s, %s, %s, %s)
+        """,
+        (tenant_id, candidate, decision.keep, decision.importance, decision.confidence, decision.reason),
+    )
 
 
 def get_extractor() -> FactExtractor:
@@ -73,6 +93,7 @@ def process_turn(
         for candidate in candidates:
             decision = judge.judge(candidate)
             with conn.cursor() as cur:
+                _record_decision(cur, tenant_id, candidate, decision)
                 if decision.keep:
                     cur.execute(
                         """

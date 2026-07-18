@@ -114,6 +114,7 @@ def client():
     from fastapi.testclient import TestClient
 
     from api.main import app
+    from prototypes.reranker import FakeReranker, get_reranker
     from write_gate.pipeline import get_embedder, get_extractor, get_judge
     from write_gate.judge import Decision
 
@@ -124,5 +125,10 @@ def client():
         lambda candidate: Decision(keep=False, importance=1, confidence=0.0, reason="unexpected candidate in test")
     )
     app.dependency_overrides[get_embedder] = lambda: FakeEmbedder()
+    # M6: default to a zero-latency identity reranker (keeps original scores
+    # unless a test overrides the relevance map) — without this, any test
+    # that ever passes rerank=True would hit AnthropicReranker's live LLM
+    # call and fail/hang without ANTHROPIC_API_KEY.
+    app.dependency_overrides[get_reranker] = lambda: FakeReranker(simulated_latency_ms=0)
     yield TestClient(app)
     app.dependency_overrides.clear()
