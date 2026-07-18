@@ -1,0 +1,1 @@
+../ADR-004-separation-inside-the-database.md
