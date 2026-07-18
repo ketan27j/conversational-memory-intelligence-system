@@ -1,0 +1,38 @@
+# Independent live RLS spot-check — 2026-07-18T11:47:26Z
+# Run directly via psql as cmis_app (the production app role, NOBYPASSRLS), bypassing the
+# Python/FastAPI layer entirely -- this tests the database's own enforcement, not application code.
+
+$ psql -h localhost -p 5433 -U cmis_app -d cmis
+
+-- seed one memory as tenant A
+SET
+INSERT 0 1
+
+-- switch session to tenant B, query memory with no WHERE clause at all
+SET
+ visible_to_tenant_b 
+---------------------
+                   0
+(1 row)
+
+
+-- open a brand new connection, query memory before ever setting app.tenant_id
+ visible_with_no_tenant_set 
+----------------------------
+                          0
+(1 row)
+
+
+-- confirm the row genuinely exists by querying back as the owning tenant
+SET
+ visible_to_owning_tenant_a 
+----------------------------
+                          1
+(1 row)
+
+
+## Verdict
+0 rows visible to a different tenant, 0 rows visible with no tenant set at all, 1 row visible
+to the owning tenant. RLS enforcement holds at the database layer, independent of any
+application-code filtering -- this is the specific 'bypass test' design/threat_model.md
+calls out as 'the real test... it proves the separation lives where it needs to live.'

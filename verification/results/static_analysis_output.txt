@@ -1,0 +1,8 @@
+# Fresh independent static-analysis run — 2026-07-18T11:45:52Z
+# Command: mypy --config-file mypy.ini . && ruff check .
+
+== mypy ==
+Success: no issues found in 44 source files
+
+== ruff ==
+All checks passed!
