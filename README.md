@@ -76,6 +76,22 @@ Independent verification evidence (fresh re-runs of all of the above, plus a liv
 security spot-check) lives in `verification/` — see `verification/test_plan.md` for what's tested
 and why, and `verification/final_verification.pdf` for the consolidated verdict.
 
+## Troubleshooting
+
+**Tests fail with `psycopg.errors.UndefinedTable: relation "..." does not exist`, on a batch of
+tests, while unrelated tests pass.** This means your local Docker volume is stale relative to
+`db/schema.sql`. `tests/conftest.py`'s setup fixture only re-applies `schema.sql` when the
+`memory` table doesn't exist yet (see the docstring on `wait_for_postgres`) — it can't tell "fully
+up to date" apart from "old but has `memory`." If `schema.sql` has since grown new tables (e.g.
+`request_metric`, `write_gate_decision`, added in M6/ADR-001) but your volume predates that
+change, those tables are silently missing even though the container looks healthy. Fix: reset the
+volume so the schema reapplies in full —
+
+```bash
+docker compose down -v && docker compose up -d
+python3 -m pytest tests/ -v
+```
+
 ## Directory Structure
 
 - **reconstruction/** - Reconstruction phase
