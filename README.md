@@ -25,6 +25,12 @@ service sits in front of it:
 | Prototypes (stretch) | `prototypes/` | Second-pass reranker and a write-gate classifier, both behind feature switches, off by default |
 | HTTP API | `api/main.py` | See endpoints below |
 
+### Architecture diagram
+
+![Technical architecture diagram of the Conversational Memory Intelligence System](design/architecture.svg)
+
+(Also available as `design/architecture.pdf` / `design/data_flow.pdf`.)
+
 ### API endpoints (`design/api_contracts.md`)
 
 - `POST /v1/memories:ingest` — accept a conversation turn; extraction/write-gate run in the background after the response returns

@@ -1,0 +1,225 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 1340" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#868e96"/>
+    </marker>
+    <marker id="arrow-dashed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#adb5bd"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1500" height="1340" fill="#f8f9fa"/>
+
+  <!-- Title -->
+  <text x="750" y="34" text-anchor="middle" font-size="24" font-weight="700" fill="#1a1a2e">Conversational Memory Intelligence System</text>
+  <text x="750" y="56" text-anchor="middle" font-size="13" fill="#868e96">Technical architecture — implementation/</text>
+
+  <!-- Client -->
+  <rect x="650" y="86" width="200" height="54" rx="8" fill="#ffffff" stroke="#343a40" stroke-width="1.5"/>
+  <text x="750" y="108" text-anchor="middle" font-size="13" font-weight="600" fill="#1a1a2e">Client / Chat App</text>
+  <text x="750" y="126" text-anchor="middle" font-size="10.5" fill="#868e96">Bearer token per request</text>
+
+  <line x1="750" y1="140" x2="750" y2="168" stroke="#868e96" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- API box -->
+  <rect x="100" y="170" width="1300" height="128" rx="10" fill="#ffffff" stroke="#1971c2" stroke-width="2"/>
+  <rect x="100" y="170" width="6" height="128" fill="#1971c2"/>
+  <text x="128" y="196" font-size="15" font-weight="700" fill="#1971c2">FastAPI service — api/main.py</text>
+  <text x="128" y="216" font-size="11.5" fill="#495057">api/auth.py verify_token(): tenant_id comes only from the verified Bearer token, never the request body (T7)</text>
+  <text x="140" y="244" font-size="11.5" fill="#1a1a2e">POST /v1/memories:ingest</text>
+  <text x="140" y="264" font-size="11.5" fill="#1a1a2e">GET /v1/memories</text>
+  <text x="140" y="284" font-size="11.5" fill="#1a1a2e">POST /v1/memories:retrieve</text>
+  <text x="780" y="244" font-size="11.5" fill="#1a1a2e">POST /v1/memories:feedback</text>
+  <text x="780" y="264" font-size="11.5" fill="#1a1a2e">DELETE /v1/memories/{id}</text>
+  <text x="780" y="284" font-size="11.5" fill="#1a1a2e">GET /v1/observability/health</text>
+
+  <!-- Lane header labels -->
+  <text x="380" y="330" text-anchor="middle" font-size="13" font-weight="700" fill="#7048e8">Ingest pipeline — background task (ADR-005)</text>
+  <text x="1120" y="330" text-anchor="middle" font-size="13" font-weight="700" fill="#0c8599">Retrieve pipeline — synchronous</text>
+
+  <line x1="380" y1="298" x2="380" y2="345" stroke="#868e96" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="1120" y1="298" x2="1120" y2="345" stroke="#868e96" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ============ Ingest lane (left) ============ -->
+  <!-- 1 Secrets filter -->
+  <rect x="100" y="350" width="560" height="70" rx="8" fill="#ffffff" stroke="#7048e8" stroke-width="1.5"/>
+  <rect x="100" y="350" width="5" height="70" fill="#7048e8"/>
+  <text x="120" y="372" font-size="13" font-weight="700" fill="#1a1a2e">Secrets Filter</text>
+  <text x="120" y="390" font-size="10.5" fill="#495057">secrets_filter/detector.py — regex credential/PII scan;</text>
+  <text x="120" y="404" font-size="10.5" fill="#495057">redacts or 422s, runs before anything is queued</text>
+  <line x1="380" y1="420" x2="380" y2="442" stroke="#868e96" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- 2 Extractor -->
+  <rect x="100" y="446" width="560" height="70" rx="8" fill="#ffffff" stroke="#7048e8" stroke-width="1.5"/>
+  <rect x="100" y="446" width="5" height="70" fill="#7048e8"/>
+  <text x="120" y="468" font-size="13" font-weight="700" fill="#1a1a2e">Fact Extractor</text>
+  <text x="120" y="486" font-size="10.5" fill="#495057">extraction/extractor.py — LLM pulls short, standalone</text>
+  <text x="120" y="500" font-size="10.5" fill="#495057">facts worth remembering out of the raw turn</text>
+  <line x1="380" y1="516" x2="380" y2="538" stroke="#868e96" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- 3 Write gate judge -->
+  <rect x="100" y="542" width="560" height="70" rx="8" fill="#ffffff" stroke="#7048e8" stroke-width="1.5"/>
+  <rect x="100" y="542" width="5" height="70" fill="#7048e8"/>
+  <text x="120" y="564" font-size="13" font-weight="700" fill="#1a1a2e">Write Gate Judge</text>
+  <text x="120" y="582" font-size="10.5" fill="#495057">write_gate/judge.py — LLM keep/drop + importance/</text>
+  <text x="120" y="596" font-size="10.5" fill="#495057">confidence; every decision logged (kept AND dropped)</text>
+  <line x1="380" y1="612" x2="380" y2="634" stroke="#868e96" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- 4 Indexer -->
+  <rect x="100" y="638" width="560" height="70" rx="8" fill="#ffffff" stroke="#7048e8" stroke-width="1.5"/>
+  <rect x="100" y="638" width="5" height="70" fill="#7048e8"/>
+  <text x="120" y="660" font-size="13" font-weight="700" fill="#1a1a2e">Indexer</text>
+  <text x="120" y="678" font-size="10.5" fill="#495057">retrieval/indexer.py — embeds (Voyage) + extracts</text>
+  <text x="120" y="692" font-size="10.5" fill="#495057">entities for every kept memory, same transaction</text>
+  <line x1="380" y1="708" x2="380" y2="730" stroke="#868e96" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- 5 Contradiction -->
+  <rect x="100" y="734" width="560" height="70" rx="8" fill="#ffffff" stroke="#7048e8" stroke-width="1.5"/>
+  <rect x="100" y="734" width="5" height="70" fill="#7048e8"/>
+  <text x="120" y="756" font-size="13" font-weight="700" fill="#1a1a2e">Contradiction Detector + Resolver</text>
+  <text x="120" y="774" font-size="10.5" fill="#495057">contradiction/*.py — same-subject check (cosine ≥ 0.75);</text>
+  <text x="120" y="788" font-size="10.5" fill="#495057">newer memory supersedes only if ≥ as confident (C8)</text>
+
+  <!-- dashed shortcut: secrets filter -> DB (blocked) -->
+  <path d="M 660 385 C 760 385, 760 800, 660 850" fill="none" stroke="#adb5bd" stroke-width="1.3" stroke-dasharray="4,3" marker-end="url(#arrow-dashed)"/>
+  <text x="770" y="600" font-size="9.5" fill="#868e96" text-anchor="middle">422 pii_rejected →</text>
+  <text x="770" y="612" font-size="9.5" fill="#868e96" text-anchor="middle">audit_log(blocked_secret)</text>
+
+  <!-- ============ Retrieve lane (right) ============ -->
+  <!-- 1 Hybrid search -->
+  <rect x="840" y="350" width="560" height="110" rx="8" fill="#ffffff" stroke="#0c8599" stroke-width="1.5"/>
+  <rect x="840" y="350" width="5" height="110" fill="#0c8599"/>
+  <text x="860" y="374" font-size="13" font-weight="700" fill="#1a1a2e">Hybrid Search</text>
+  <text x="860" y="394" font-size="10.5" fill="#495057">retrieval/search.py — vector (HNSW cosine) + keyword</text>
+  <text x="860" y="408" font-size="10.5" fill="#495057">(tsvector/ts_rank_cd) + entity join, weighted</text>
+  <text x="860" y="422" font-size="10.5" fill="#495057">0.5 / 0.3 / 0.2 into one "semantic" signal (C7)</text>
+  <line x1="1120" y1="460" x2="1120" y2="482" stroke="#868e96" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- 2 Ranking + floor -->
+  <rect x="840" y="486" width="560" height="110" rx="8" fill="#ffffff" stroke="#0c8599" stroke-width="1.5"/>
+  <rect x="840" y="486" width="5" height="110" fill="#0c8599"/>
+  <text x="860" y="510" font-size="13" font-weight="700" fill="#1a1a2e">Ranking + Relevance Floor</text>
+  <text x="860" y="530" font-size="10.5" fill="#495057">blends semantic 0.4 + recency 0.2 + frequency 0.2 +</text>
+  <text x="860" y="544" font-size="10.5" fill="#495057">importance 0.2 (C6); abstains below 0.20 floor per-</text>
+  <text x="860" y="558" font-size="10.5" fill="#495057">candidate rather than guessing (INV-6)</text>
+  <line x1="1120" y1="596" x2="1120" y2="618" stroke="#868e96" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- 3 Reranker (prototype, dashed) -->
+  <rect x="840" y="622" width="560" height="90" rx="8" fill="#ffffff" stroke="#adb5bd" stroke-width="1.5" stroke-dasharray="6,4"/>
+  <rect x="840" y="622" width="5" height="90" fill="#adb5bd"/>
+  <text x="860" y="646" font-size="13" font-weight="700" fill="#495057">Reranker (optional switch)</text>
+  <text x="860" y="664" font-size="10.5" fill="#868e96">prototypes/reranker.py — LLM second pass over top</text>
+  <text x="860" y="678" font-size="10.5" fill="#868e96">candidates; off by default (ADR-006), runs after the</text>
+  <text x="860" y="692" font-size="10.5" fill="#868e96">DB connection closes — no DB access itself</text>
+
+  <!-- ============ Convergence into DB ============ -->
+  <line x1="380" y1="804" x2="450" y2="848" stroke="#868e96" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="330" y="826" font-size="9.5" fill="#495057" text-anchor="middle">writes: memory,</text>
+  <text x="330" y="838" font-size="9.5" fill="#495057" text-anchor="middle">memory_entity,</text>
+  <text x="330" y="850" font-size="9.5" fill="#495057" text-anchor="middle">write_gate_decision,</text>
+  <text x="330" y="862" font-size="9.5" fill="#495057" text-anchor="middle">audit_log</text>
+
+  <line x1="1120" y1="712" x2="1050" y2="848" stroke="#868e96" stroke-width="1.5" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+  <text x="1170" y="826" font-size="9.5" fill="#495057" text-anchor="middle">reads: vector/keyword/</text>
+  <text x="1170" y="838" font-size="9.5" fill="#495057" text-anchor="middle">entity search · writes:</text>
+  <text x="1170" y="850" font-size="9.5" fill="#495057" text-anchor="middle">access_count, audit_log,</text>
+  <text x="1170" y="862" font-size="9.5" fill="#495057" text-anchor="middle">request_metric</text>
+
+  <!-- ============ Database ============ -->
+  <rect x="100" y="850" width="1300" height="190" rx="10" fill="#ffffff" stroke="#2f9e44" stroke-width="2"/>
+  <rect x="100" y="850" width="6" height="190" fill="#2f9e44"/>
+  <text x="128" y="878" font-size="15" font-weight="700" fill="#2f9e44">PostgreSQL + pgvector — single database (ADR-003)</text>
+  <text x="128" y="898" font-size="11.5" fill="#495057">Row-Level Security scopes every table to app.tenant_id (ADR-004) — application code never writes a tenant filter itself</text>
+
+  <!-- table chips -->
+  <g font-size="11" fill="#1a1a2e">
+    <rect x="128" y="912" width="200" height="30" rx="6" fill="#ebfbee" stroke="#2f9e44" stroke-width="1"/>
+    <text x="228" y="931" text-anchor="middle">memory</text>
+    <rect x="338" y="912" width="200" height="30" rx="6" fill="#ebfbee" stroke="#2f9e44" stroke-width="1"/>
+    <text x="438" y="931" text-anchor="middle">memory_entity</text>
+    <rect x="548" y="912" width="200" height="30" rx="6" fill="#ebfbee" stroke="#2f9e44" stroke-width="1"/>
+    <text x="648" y="931" text-anchor="middle">conversation_turn</text>
+    <rect x="758" y="912" width="200" height="30" rx="6" fill="#ebfbee" stroke="#2f9e44" stroke-width="1"/>
+    <text x="858" y="931" text-anchor="middle">audit_log (append-only)</text>
+    <rect x="968" y="912" width="190" height="30" rx="6" fill="#ebfbee" stroke="#2f9e44" stroke-width="1"/>
+    <text x="1063" y="931" text-anchor="middle">request_metric</text>
+    <rect x="1168" y="912" width="212" height="30" rx="6" fill="#ebfbee" stroke="#2f9e44" stroke-width="1"/>
+    <text x="1274" y="931" text-anchor="middle">write_gate_decision</text>
+  </g>
+
+  <!-- roles -->
+  <g font-size="11">
+    <rect x="128" y="960" width="420" height="60" rx="6" fill="#f8f9fa" stroke="#ced4da" stroke-width="1"/>
+    <text x="148" y="980" font-weight="700" fill="#1a1a2e">cmis</text>
+    <text x="148" y="996" fill="#495057" font-size="10">table owner — one-time schema setup only, never live traffic</text>
+    <text x="148" y="1010" fill="#495057" font-size="10">(db/schema.sql)</text>
+
+    <rect x="558" y="960" width="420" height="60" rx="6" fill="#f8f9fa" stroke="#ced4da" stroke-width="1"/>
+    <text x="578" y="980" font-weight="700" fill="#1a1a2e">cmis_app  (NOBYPASSRLS)</text>
+    <text x="578" y="996" fill="#495057" font-size="10">used by every request via tenant_connection() —</text>
+    <text x="578" y="1010" fill="#495057" font-size="10">RLS always applies</text>
+
+    <rect x="988" y="960" width="392" height="60" rx="6" fill="#f8f9fa" stroke="#ced4da" stroke-width="1"/>
+    <text x="1008" y="980" font-weight="700" fill="#1a1a2e">cmis_job  (BYPASSRLS)</text>
+    <text x="1008" y="996" fill="#495057" font-size="10">used only by jobs/*.py via job_connection() —</text>
+    <text x="1008" y="1010" fill="#495057" font-size="10">never exposed over HTTP</text>
+  </g>
+
+  <!-- Classifier prototype, dashed, hangs off write_gate_decision -->
+  <line x1="1274" y1="942" x2="1274" y2="1055" stroke="#adb5bd" stroke-width="1.3" stroke-dasharray="4,3" marker-end="url(#arrow-dashed)"/>
+  <rect x="924" y="1060" width="500" height="66" rx="8" fill="#ffffff" stroke="#adb5bd" stroke-width="1.5" stroke-dasharray="6,4"/>
+  <text x="944" y="1082" font-size="12.5" font-weight="700" fill="#495057">Write-Gate Classifier (prototype)</text>
+  <text x="944" y="1099" font-size="10" fill="#868e96">prototypes/classifier.py — Naive Bayes trained offline on</text>
+  <text x="944" y="1112" font-size="10" fill="#868e96">write_gate_decision rows; ADR-001 graduation candidate, not wired into the live judge</text>
+
+  <!-- ============ Jobs + Observability row ============ -->
+  <line x1="380" y1="1040" x2="380" y2="1152" stroke="#868e96" stroke-width="1.5" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+  <line x1="1120" y1="1040" x2="1120" y2="1152" stroke="#868e96" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Jobs -->
+  <rect x="100" y="1156" width="560" height="118" rx="10" fill="#ffffff" stroke="#e8590c" stroke-width="2"/>
+  <rect x="100" y="1156" width="6" height="118" fill="#e8590c"/>
+  <text x="128" y="1182" font-size="14" font-weight="700" fill="#e8590c">Nightly Jobs — jobs/*.py</text>
+  <text x="128" y="1198" font-size="10.5" fill="#495057">cron entrypoints (scheduler not wired up); cross-tenant via cmis_job</text>
+  <rect x="128" y="1208" width="250" height="52" rx="6" fill="#fff4e6" stroke="#e8590c" stroke-width="1"/>
+  <text x="253" y="1228" text-anchor="middle" font-size="11" font-weight="600" fill="#1a1a2e">Reweight</text>
+  <text x="253" y="1244" text-anchor="middle" font-size="9.5" fill="#495057">weight = importance × staleness ×</text>
+  <text x="253" y="1256" text-anchor="middle" font-size="9.5" fill="#495057">usefulness; archives below floor (C9)</text>
+  <rect x="392" y="1208" width="250" height="52" rx="6" fill="#fff4e6" stroke="#e8590c" stroke-width="1"/>
+  <text x="517" y="1228" text-anchor="middle" font-size="11" font-weight="600" fill="#1a1a2e">Purge</text>
+  <text x="517" y="1244" text-anchor="middle" font-size="9.5" fill="#495057">hard-deletes rows marked deleted,</text>
+  <text x="517" y="1256" text-anchor="middle" font-size="9.5" fill="#495057">within a 60s window (C11 / INV-4)</text>
+
+  <!-- Observability -->
+  <rect x="840" y="1156" width="560" height="118" rx="10" fill="#ffffff" stroke="#495057" stroke-width="2"/>
+  <rect x="840" y="1156" width="6" height="118" fill="#495057"/>
+  <text x="868" y="1182" font-size="14" font-weight="700" fill="#495057">Observability — observability/metrics.py</text>
+  <text x="868" y="1200" font-size="10.5" fill="#495057">4 health numbers per tenant, computed from audit_log +</text>
+  <text x="868" y="1214" font-size="10.5" fill="#495057">request_metric (C12):</text>
+  <text x="868" y="1234" font-size="10.5" fill="#1a1a2e">usage rate · correction rate · latency p50/p95 · cost</text>
+  <text x="868" y="1254" font-size="10" fill="#868e96">503 memory_unavailable on DB timeout — the turn still</text>
+  <text x="868" y="1266" font-size="10" fill="#868e96">answers, just without memory (C13 / INV-7)</text>
+
+  <!-- feedback loop: Observability -> API -->
+  <path d="M 1400 1156 C 1460 1156, 1460 236, 1402 236" fill="none" stroke="#adb5bd" stroke-width="1.3" stroke-dasharray="5,3" marker-end="url(#arrow-dashed)"/>
+  <text x="1466" y="700" font-size="10" fill="#868e96" text-anchor="middle" transform="rotate(90 1466 700)">GET /v1/observability/health</text>
+
+  <!-- ============ Legend ============ -->
+  <line x1="100" y1="1296" x2="1400" y2="1296" stroke="#dee2e6" stroke-width="1"/>
+  <g font-size="11" fill="#495057">
+    <rect x="100" y="1312" width="14" height="14" rx="3" fill="#1971c2"/>
+    <text x="120" y="1323">API</text>
+    <rect x="190" y="1312" width="14" height="14" rx="3" fill="#7048e8"/>
+    <text x="210" y="1323">Ingest pipeline</text>
+    <rect x="340" y="1312" width="14" height="14" rx="3" fill="#0c8599"/>
+    <text x="360" y="1323">Retrieve pipeline</text>
+    <rect x="500" y="1312" width="14" height="14" rx="3" fill="#2f9e44"/>
+    <text x="520" y="1323">Database (RLS-enforced)</text>
+    <rect x="700" y="1312" width="14" height="14" rx="3" fill="#e8590c"/>
+    <text x="720" y="1323">Nightly jobs</text>
+    <rect x="840" y="1312" width="14" height="14" rx="3" fill="#495057"/>
+    <text x="860" y="1323">Observability</text>
+    <rect x="980" y="1312" width="14" height="14" rx="3" fill="#ffffff" stroke="#adb5bd" stroke-width="1.5" stroke-dasharray="3,2"/>
+    <text x="1000" y="1323">Prototype — off by default</text>
+  </g>
+</svg>
